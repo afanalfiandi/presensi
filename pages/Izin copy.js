@@ -1,25 +1,14 @@
-import { StatusBar, Image, Button, SafeAreaView, Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Alert } from 'react-native'
+import { StatusBar, Image, SafeAreaView, Dimensions, StyleSheet, Text, View, TouchableOpacity, TextInput, Alert } from 'react-native'
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import RadioForm, { RadioButton, RadioButtonInput, RadioButtonLabel } from 'react-native-simple-radio-button';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { launchCamera, launchImageLibrary } from 'react-native-image-picker';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
 
 const color = '#FFCF30';
-const options = {
-  title: 'Select Image',
-  type: 'library',
-  options: {
-    maxHeight: 200,
-    maxWidth: 200,
-    selectionLimit: 1,
-    mediaType: 'photo',
-    includeBase64: false
-  }
-};
+
 var radio_props = [
   { label: 'Sakit', value: 1 },
   { label: 'Kegiatan', value: 2 },
@@ -30,59 +19,34 @@ const Izin = () => {
   const navigation = useNavigation();
   const [value, setValue] = useState();
   const [keterangan, setKeterangan] = useState();
-  const [uri, setUri] = useState();
-  const [type, setType] = useState();
-  const [name, setName] = useState();
-
-  const handleImagePicker = async () => {
-    try {
-      const result = await launchImageLibrary(options);
-
-      setUri(result.assets[0].uri,);
-      setType(result.assets[0].type,);
-      setName(result.assets[0].fileName);
-    } catch (error) {
-      console.log(error);
-    }
-  }
 
   const submit = async () => {
-    const formData = new FormData();
     const nip = await AsyncStorage.getItem('NIP');
-    formData.append('nip', nip);
-    formData.append('izin', value);
-    formData.append('keterangan', keterangan);
 
-    formData.append('file', {
-      uri: uri,
-      type: type,
-      name: name,
-    });
-    let res = await fetch(
-      'https://afanalfiandi.com/presensi/api/api.php?act=izin',
-      {
-        method: 'post',
-        body: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data; ',
-        },
-      }
-    ).then((res) => res.json()).then((resp) => {
-      if (resp == "1") {
-        Alert.alert('', 'File Sudah Ada!');
-      } else if (resp == "2") {
-        Alert.alert('', 'Ukuran File Terlalu Besar!');
-      } else if (resp == "3") {
-        Alert.alert('', 'Berhasil!', [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Home')
-          }
-        ]);
-      } else {
-        Alert.alert('', 'Gagal!');
-      }
-    });
+    fetch('https://afanalfiandi.com/presensi/api/api.php?act=izin', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        nip: nip,
+        izin: value,
+        keterangan: keterangan
+      })
+    }).then((res) => res.json())
+      .then((json) => {
+        if (json == "Success") {
+          Alert.alert('', 'Berhasil!', [
+            {
+              text: 'OK',
+              onPress: () =>  navigation.navigate('Home')
+            }
+          ])
+        } else {
+          Alert.alert('', 'Gagal!');
+        }
+      })
   }
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -141,14 +105,7 @@ const Izin = () => {
             onChangeText={setKeterangan}
             value={keterangan}
             placeholder='Keterangan'></TextInput>
-
-          <Text style={styles.noteText}>*wajib mengisi keterangan & upload bukti izin (surat dokter, dll.)</Text>
-          <TouchableOpacity onPress={handleImagePicker} style={styles.file}>
-            <Text>Pilih File  📑</Text>
-          </TouchableOpacity>
-          {(name != null) && (
-            <Text style={styles.noteText}>File siap diupload.</Text>
-          )}
+          <Text style={styles.noteText}>*kegiatan dan lain - lain wajib mengisi keterangan </Text>
         </View>
         <TouchableOpacity style={styles.submitBtn} onPress={submit}>
           <Text style={styles.submitText}>Submit</Text>
@@ -187,7 +144,7 @@ const styles = StyleSheet.create({
   },
   inputTitle: {
     color: 'black',
-    fontSize: width * 0.040,
+    fontSize: width * 0.045,
     fontWeight: 'bold',
     marginTop: height * 0.02,
   },
@@ -201,29 +158,22 @@ const styles = StyleSheet.create({
     marginTop: height * 0.02,
     borderRadius: width * 0.02,
     backgroundColor: '#E0E0E0',
-    color: 'black'
+    color:'black'
   },
   noteText: {
     color: 'black',
     marginTop: height * 0.01,
-    fontWeight: 'bold',
-    fontSize: width * 0.029,
+    fontWeight: 'bold'
   },
 
   submitBtn: {
     backgroundColor: color,
     width: width * 0.9,
-    marginTop: height * 0.067,
+    marginTop: height * 0.2,
     height: height * 0.045,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: width * 0.02
-  },
-  file: {
-    borderWidth: 1,
-    marginVertical: width * 0.038,
-    padding: width * 0.02,
-    borderColor: color
   },
   submitText: {
     color: 'black',

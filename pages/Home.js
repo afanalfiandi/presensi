@@ -13,6 +13,7 @@ const Home = () => {
   const [nip, setNip] = useState();
   const [nama, setNama] = useState();
   const [img, setImg] = useState();
+  const [cabang, setCabang] = useState();
   const [jamMasuk, setJamMasuk] = useState();
   const [jamPulang, setJamPulang] = useState();
 
@@ -24,6 +25,7 @@ const Home = () => {
   const getUser = async () => {
     try {
       const nip = await AsyncStorage.getItem("NIP");
+      const namaCabang = await AsyncStorage.getItem("namaCabang");
 
       fetch('https://afanalfiandi.com/presensi/api/api.php', {
         method: 'POST',
@@ -39,6 +41,7 @@ const Home = () => {
           setNama(json.nama);
           setNip(json.nip);
           setImg(json.img);
+          setCabang(namaCabang);
         })
     } catch (error) {
 
@@ -85,6 +88,7 @@ const Home = () => {
       <StatusBar barStyle="dark-content" hidden={false} backgroundColor="#FFCF30" />
       <View style={styles.titleContainer}>
         <Text style={styles.pageTitle}>DASHBOARD</Text>
+        <Text style={styles.logOutBtn} onPress={logout}>Log Out</Text>
       </View>
       <View style={styles.container}>
         {/* <TouchableOpacity style={styles.userInfoContainer} onPress={() => navigation.navigate('Profil')} elevation={10}> */}
@@ -95,6 +99,7 @@ const Home = () => {
           <View style={styles.userInfoTextContainer}>
             <Text style={styles.userInfoText}>{nama}</Text>
             <Text style={styles.userInfoText}>NIP. {nip}</Text>
+            <Text style={styles.cabangInfoText}>{cabang}</Text>
           </View>
         </View>
         {/* </TouchableOpacity> */}
@@ -143,12 +148,9 @@ const Home = () => {
                 <Text style={styles.menuTxt}>Rekap</Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity onPress={logout}>
+            <TouchableOpacity>
               <View style={styles.menuBtn}>
-                <View style={styles.imgContainer}>
-                  <Image source={require('../assets/img/icon-power.png')} />
-                </View>
-                <Text style={styles.menuTxt}>Log Out</Text>
+
               </View>
             </TouchableOpacity>
           </View>
@@ -190,6 +192,8 @@ const styles = StyleSheet.create({
   titleContainer: {
     paddingHorizontal: width * 0.05,
     marginTop: height * 0.08,
+    flexDirection: 'row',
+    justifyContent: 'space-between'
   },
   container: {
     flex: 1,
@@ -203,16 +207,14 @@ const styles = StyleSheet.create({
   },
   userInfoContainer: {
     backgroundColor: 'white',
-    paddingHorizontal: width * 0.08,
     alignItems: 'center',
     height: '20%',
     marginTop: height * 0.03,
     width: '75%',
     borderRadius: width * 0.03,
-    flexDirection: 'row'
   },
   userInfoTextContainer: {
-    marginLeft: width * 0.02
+    alignItems: 'center'
   },
   userInfoText: {
     fontSize: width * 0.048,
@@ -251,7 +253,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   menuTxt: {
-    marginTop: height * 0.01
+    marginTop: height * 0.01,
+    color: 'black'
   },
   historyContainer: {
     backgroundColor: 'white',
@@ -291,12 +294,19 @@ const styles = StyleSheet.create({
   },
   profileImgContainer: {
     borderRadius: 400,
-    width: 100,
-    height: '100%',
+    padding: 5,
     justifyContent: 'center'
   },
   imgProfile: {
-    width: '100%',
-    height: 100
+    width: 55,
+    height: 55
+  },
+  cabangInfoText: {
+    fontWeight: 'bold'
+  },
+  logOutBtn: {
+    fontSize: 15,
+    fontWeight: 'bold',
+    color: 'black'
   }
 })

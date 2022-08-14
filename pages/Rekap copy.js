@@ -1,12 +1,12 @@
-import { Dimensions, Image, StatusBar, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { Dimensions, Image, StatusBar, SafeAreaView, StyleSheet, Text, TouchableOpacity, View, FlatList } from 'react-native'
 import React, { useEffect, useState } from 'react';
-import { Calendar, CalendarList, Agenda } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import CalendarStrip from 'react-native-calendar-strip';
 import { LocaleConfig } from 'react-native-calendars';
 import moment from 'moment';
 import 'moment/locale/id';
 import { useNavigation } from '@react-navigation/native';
+
 
 LocaleConfig.locales['id'] = {
   monthNames: [
@@ -36,14 +36,15 @@ const color = '#FFCF30';
 
 const Rekap = () => {
   const navigation = useNavigation();
-  const today = new Date().toDateString();
-  const [data, setData] = useState([]);
-  useEffect(() => {
-    getData();
-  }, []);
-  const getData = async () => {
-    const nip = await AsyncStorage.getItem("NIP");
+  const today = new Date();
+  const [data, setData] = useState();
+  const [date, setDate] = useState();
+  const first = moment(today, 'YYYY-MM-DD').startOf('month').format('YYYY-MM-DD');
+  const end = moment(today, 'YYYY-MM-DD').endOf('month').format('YYYY-MM-DD');
 
+  const getData = async (date) => {
+    const nip = await AsyncStorage.getItem("NIP");
+    const tgl = moment(date).format('YYYY-MM-DD');
     fetch('https://afanalfiandi.com/presensi/api/api.php?act=getRekap', {
       method: "POST",
       headers: {
@@ -51,16 +52,91 @@ const Rekap = () => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        nip: nip
+        nip: nip,
+        tgl: tgl
       })
     }).then((res) => res.json())
       .then((json) => {
-        const mappingData = json.map(item => {
-          setData(json)
-          console.log(data);
-        })
+        setData(json);
+        setDate(tgl);
       })
   }
+
+  function convertToDegree(coord) {
+    var absolute = Math.abs(coord);
+    var degrees = Math.floor(absolute);
+    var minutesNotTruncated = (absolute - degrees) * 60;
+    var minutes = Math.floor(minutesNotTruncated);
+    var seconds = Math.floor((minutesNotTruncated - minutes) * 60);
+
+    return degrees + "° " + minutes + "' " + seconds + '" ';
+  }
+
+  function convertDMS(lat, long) {
+    var latitude = convertToDegree(lat);
+    var latitudeCardinal = lat >= 0 ? "LU" : "LS";
+
+    var longitude = convertToDegree(long);
+    var longitudeCardinal = long >= 0 ? "BT" : "BB";
+
+    return latitude + " " + latitudeCardinal + " dan " + longitude + " " + longitudeCardinal;
+  }
+
+  const renderItem = ({ item }) => (
+    <View style={{ backgroundColor: 'white', justifyContent: 'center', flexDirection: 'row' }}>
+      <View style={{ width: width * 0.2, height: height * 0.14, marginVertical: 20 }}>
+        <View style={{
+          alignItems: 'center',
+          marginVertical: height * 0.005
+        }}>
+          <Text style={{ fontSize: width * 0.068, color: 'black', fontWeight: 'bold' }}>{moment(date).format('DD')}</Text>
+          <Text style={{ fontSize: width * 0.04, color: 'black' }}>{moment(date).format('dddd')}</Text>
+        </View>
+      </View>
+      {item.tgl != null && (
+        <View>
+          <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Masuk</Text>
+              <Text style={{ fontSize: width * 0.04, color: 'black' }}>{item.jam_masuk}</Text>
+            </View>
+            <View style={{ justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Titik Koordinat</Text>
+            </View>
+            <View style={{ justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black' }}>
+                {convertDMS(item.latitude_masuk, item.longitude_masuk)}
+              </Text>
+            </View>
+          </View>
+          <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Pulang</Text>
+              <Text style={{ fontSize: width * 0.04, color: 'black' }}>{item.jam_pulang}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Titik Koordinat</Text>
+            </View>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black' }}>
+                {convertDMS(item.latitude_pulang, item.longitude_pulang)}
+              </Text>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {item.tgl == null && (
+        <View>
+          <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginVertical: height * 0.005 }}>
+              <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Tidak ada data</Text>
+            </View>
+          </View>
+        </View>
+      )}
+    </View>
+  );
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" hidden={false} backgroundColor="white" />
@@ -69,124 +145,48 @@ const Rekap = () => {
           <TouchableOpacity onPress={() => navigation.navigate('Home')}>
             <Image source={require('../assets/img/icon-back.png')} />
           </TouchableOpacity>
-          <Text style={styles.pageTitle}>Rekap</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('RekapIzin')} style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: 'black', paddingBottom: 1 }}>
+            <Text style={styles.pageTitle}>Presensi</Text>
+          </TouchableOpacity>
         </View>
         <View style={styles.dayContainer}>
           <Text style={styles.dayInfoText}>{moment(today).format('dddd, DD MMMM yyyy')}</Text>
           <Text style={styles.pageTitle}>Today</Text>
         </View>
         <View style={styles.content}>
-          <Agenda
-            items={{
-              '2022-07-05': [{ masuk: '07.00', pulang: '17.00', lat: 'latitude', long: 'longitude' }]
-            }}
-            onDayPress={day => {
-              console.log('day pressed');
-            }}
-            // Callback that gets called when day changes while scrolling agenda list
-            onDayChange={day => {
-              console.log('day changed');
-            }}
-            selected={'2022-07-05'}
-            minDate={'2022-01-01'}
-            maxDate={'2022-12-31'}
-            renderItem={(item, firstItemInDay) => {
-              return (
-                <View style={{ backgroundColor: 'white' }}>
-                  <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Masuk</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>07.00</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Latitude</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>-7.00000</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Longitude</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>10.00000</Text>
-                    </View>
-                  </View>
-                  <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Pulang</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>07.00</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Latitude</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>-7.00000</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
-                      <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Longitude</Text>
-                      <Text style={{ fontSize: width * 0.04, color: 'black' }}>10.00000</Text>
-                    </View>
-                  </View>
-                </View>
-              );
-            }}
-
-            renderDay={day => {
-              const tgl = day.toISOString();
-              return <View style={{ margin: 20, backgroundColor: 'white', alignItems: 'center' }}>
-                <Text style={{ fontSize: width * 0.08, color: 'black', fontWeight: 'bold' }}>{moment(tgl).format('DD')}</Text>
-                <Text style={{ fontSize: width * 0.05, color: 'black' }}>{moment(tgl).format('ddd')}</Text>
-              </View>;
-            }}
-
-            renderEmptyDate={() => {
-              return (
-                <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
-                  <Text style={{ fontSize: width * 0.04, color: 'black' }}>Tidak Ada Data</Text>
-                </View>
-              );
-            }}
-
-            renderKnob={() => {
-              return <View style={{ width: '100%', borderRadius: 20, backgroundColor: 'black', height: 3, marginTop: 12 }}>
-                <Text style={{ color: 'black' }}>this is knob</Text>
-              </View>;
-            }}
-            hideKnob={false}
-            renderEmptyData={day => {
-              return (
-                <View style={{ flexDirection: 'row' }}>
-                  <View style={{ margin: 20, backgroundColor: 'white', alignItems: 'center' }}>
-                    <Text style={{ fontSize: width * 0.08, color: 'black', fontWeight: 'bold' }}>{moment(day).format('DD')}</Text>
-                    <Text style={{ fontSize: width * 0.05, color: 'black' }}>{moment(day).format('ddd')}</Text>
-                  </View>
-                  <View style={{ backgroundColor: color, width: width * 0.6, justifyContent: 'center', height: height * 0.14, borderRadius: 10, margin: 20, padding: 10 }}>
-                    <Text style={{ fontSize: width * 0.04, color: 'black' }}>Tidak Ada Data</Text>
-                  </View>
-                </View>
-              );
-            }}
-
-            rowHasChanged={(r1, r2) => {
-              return r1.text !== r2.text;
-            }}
-            showClosingKnob={true}
-            onRefresh={() => console.log('refreshing...')}
-            refreshControl={null}
-            theme={{
-              agendaDayTextColor: 'black',
-              agendaDayNumColor: 'black',
-              agendaTodayColor: color,
-              selectedDayBackgroundColor: color,
-              dayTextColor: 'black',
-              backgroundColor: 'white'
-            }}
-            style={{
-              height: '100%',
-              backgroundColor: 'white'
-            }}
+          <CalendarStrip
+            scrollable
+            style={{ height: height * 0.1, marginTop: 10, backgroundColor: 'white' }}
+            calendarHeaderStyle={{ color: 'black' }}
+            dateNumberStyle={{ color: 'black', fontSize: width * 0.06 }}
+            dateNameStyle={{ color: "black", fontSize: width * 0.03 }}
+            highlightDateNameStyle={{ color: color, fontSize: width * 0.03 }}
+            highlightDateNumberStyle={{ color: color, fontSize: width * 0.06 }}
+            calendarColor={'transparent'}
+            iconContainer={{ flex: 0.002, }}
+            startingDate={new Date()}
+            selectedDate={new Date()}
+            maxDate={new Date()}
+            rightSelector={[]}
+            leftSelector={[]}
+            calendarHeaderPosition='above'
+            calendarHeaderFormat='MMMM'
+            onDateSelected={(date) => getData(date)}
           />
         </View>
+
+        <FlatList
+          data={data}
+          renderItem={renderItem}
+          keyExtractor={item => item.tgl}
+        />
       </View>
     </SafeAreaView>
   )
 }
 
 export default Rekap
+
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -197,9 +197,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingVertical: height * 0.02,
-    paddingHorizontal: width * 0.04,
   },
   header: {
+    paddingHorizontal: width * 0.04,
     paddingVertical: height * 0.014,
     flexDirection: 'row',
     alignItems: 'center',
@@ -208,14 +208,15 @@ const styles = StyleSheet.create({
   pageTitle: {
     color: 'black',
     fontWeight: 'bold',
-    fontSize: width * 0.05
+    fontSize: width * 0.05,
+    paddingHorizontal: width * 0.04,
   },
   dayInfoText: {
     color: 'black',
-    fontSize: width * 0.04
+    fontSize: width * 0.04,
+    paddingHorizontal: width * 0.04,
   },
   content: {
-    flex: 1,
     backgroundColor: 'white'
   }
 })

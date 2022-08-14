@@ -29,6 +29,9 @@ const Auth = () => {
           Alert.alert('', 'NIP atau Password salah');
         } else {
           AsyncStorage.setItem('NIP', json.nip);
+          AsyncStorage.setItem('namaCabang', json.nama_cabang);
+          AsyncStorage.setItem('latKantor', json.latitude);
+          AsyncStorage.setItem('longKantor', json.longitude);
           navigation.navigate('Home');
         }
       })

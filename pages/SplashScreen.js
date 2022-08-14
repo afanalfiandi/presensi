@@ -25,6 +25,7 @@ const SplashScreen = () => {
     }).start();
   };
 
+
   const permission = async () => {
     try {
       const granted = await PermissionsAndroid.request(

@@ -81,6 +81,18 @@ const RekapIzin = () => {
                             <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Jenis Izin</Text>
                             <Text style={{ fontSize: width * 0.04, color: 'black' }}>{item.izin}</Text>
                         </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginVertical: height * 0.005 }}>
+                            <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Status</Text>
+                            {item.status == 1 && (
+                                <Text style={{ fontSize: width * 0.04, color: 'black' }}>Blm Diterima</Text>
+                            )}
+                            {item.status == 2 && (
+                                <Text style={{ fontSize: width * 0.04, color: 'black' }}>Diizinkan</Text>
+                            )}
+                            {item.status == 3 && (
+                                <Text style={{ fontSize: width * 0.04, color: 'black' }}>Ditolak</Text>
+                            )}
+                        </View>
                         <View style={{ justifyContent: 'space-between', marginVertical: height * 0.005 }}>
                             <Text style={{ fontSize: width * 0.04, color: 'black', fontWeight: 'bold' }}>Keterangan</Text>
                             <Text style={{ fontSize: width * 0.04, color: 'black', textAlign: 'justify' }}>{item.keterangan}</Text>

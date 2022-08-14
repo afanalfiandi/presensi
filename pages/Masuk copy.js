@@ -9,45 +9,44 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const width = Dimensions.get('window').width;
 const height = Dimensions.get('window').height;
-var formatcoords = require('formatcoords');
-const color = '#FFCF30';
-const Cek = () => {
-  const navigation = useNavigation();
 
+const color = '#FFCF30';
+const Masuk = () => {
+  const navigation = useNavigation();
   const [latUser, setLatUser] = useState();
   const [longUser, setLongUser] = useState();
+  const [distance, setDistance] = useState();
+
   const [coordinates, setCoordinates] = useState({
     latitude: 0,
     longitude: 0,
     latitudeDelta: 0,
-    longitudeDelta: 0,
+    longitudeDelta: 0
+  });
+
+  const [marker, setMarker] = useState({
+    latitude: 0,
+    longitude: 0,
   });
 
   useEffect(() => {
-    getPosition();
+    getUserDistance();
   }, []);
 
-  function convertToDegree(coord) {
-    var absolute = Math.abs(coord);
-    var degrees = Math.floor(absolute);
-    var minutesNotTruncated = (absolute - degrees) * 60;
-    var minutes = Math.floor(minutesNotTruncated);
-    var seconds = Math.floor((minutesNotTruncated - minutes) * 60);
-
-    return degrees + "° " + minutes + "' " + seconds + '" ';
+  const Map = () => {
+    return (
+      <MapView
+        initialRegion={coordinates}
+        style={styles.map}
+        showsUserLocation={true}
+      >
+        <Marker coordinate={marker} />
+      </MapView>
+    )
   }
-
-  function convertDMS(lat, long) {
-    var latitude = convertToDegree(lat);
-    var latitudeCardinal = lat >= 0 ? "LU" : "LS";
-
-    var longitude = convertToDegree(long);
-    var longitudeCardinal = long >= 0 ? "BT" : "BB";
-
-    return latitude + " " + latitudeCardinal + " dan " + longitude + " " + longitudeCardinal;
-  }
-
-  const getPosition = async () => {
+  const getUserDistance = async () => {
+    const latKantor = await AsyncStorage.getItem('latKantor');
+    const longKantor = await AsyncStorage.getItem('longKantor');
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
     );
@@ -56,16 +55,25 @@ const Cek = () => {
       Geolocation.getCurrentPosition((position) => {
         const lat = JSON.stringify(position.coords.latitude);
         const long = JSON.stringify(position.coords.longitude);
+        const distance = getPreciseDistance(
+          { latitude: latKantor, longitude: longKantor },
+          { latitude: lat, longitude: long },
+        );
+        setLatUser(lat);
+        setLongUser(long);
+        setDistance(distance);
+
         setCoordinates({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          latitudeDelta: 0.005,
-          longitudeDelta: 0.005
+          latitude: parseFloat(latKantor),
+          longitude: parseFloat(longKantor),
+          latitudeDelta: 0.002,
+          longitudeDelta: 0.002
         });
 
-        setLatUser(position.coords.latitude);
-        setLongUser(position.coords.longitude);
-
+        setMarker({
+          latitude: parseFloat(latKantor),
+          longitude: parseFloat(longKantor),
+        });
       }, (error) => {
         if (error.code == 2) {
           RNAndroidLocationEnabler.promptForEnableLocationIfNeeded({
@@ -98,15 +106,33 @@ const Cek = () => {
     }
   }
 
-  const Map = () => {
-    return (
-      <MapView
-        initialRegion={coordinates}
-        style={styles.map}
-        showsUserLocation={true}
-      >
-      </MapView>
-    )
+  const submit = async () => {
+    const nip = await AsyncStorage.getItem('NIP');
+
+    fetch('https://afanalfiandi.com/presensi/api/api.php?act=pMasuk', {
+      method: "POST",
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        nip: nip,
+        lat: latUser,
+        long: longUser
+      })
+    }).then((res) => res.json())
+      .then((json) => {
+        if (json == 'Success') {
+          Alert.alert('', 'Presensi Masuk Berhasil', [
+            {
+              text: 'OK',
+              onPress: () => navigation.navigate('Home')
+            }
+          ])
+        } else {
+          Alert.alert('', 'Presensi Masuk Gagal')
+        }
+      })
   }
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -114,14 +140,34 @@ const Cek = () => {
       <View style={styles.container}>
         <View style={styles.mapContainer}>
           <Map />
+          <View style={styles.buttonCallout}>
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => navigation.navigate("Home")}
+            >
+              <Image source={require('../assets/img/icon-back.png')} />
+            </TouchableOpacity>
+          </View>
         </View>
         <View style={styles.footContainer}>
-          <Text style={styles.label}>Posisi Anda : {"\n"}{convertDMS(latUser, longUser)}</Text>
+          {distance > 50 && (
+            <Text style={styles.label}>Jarak : {distance} Meter (max: 50 meter)</Text>
+          )}
+          {distance <= 50 && (
+            <Text style={styles.label}>Jarak : {distance} Meter</Text>
+          )}
 
           <View style={styles.submitContainer}>
-            <TouchableOpacity style={styles.submitBtn} onPress={() => navigation.navigate('Home')}>
-              <Text style={styles.label}>OK</Text>
-            </TouchableOpacity>
+            {distance > 50 && (
+              <TouchableOpacity onPress={submit} style={[styles.submitBtn, { backgroundColor: '#eaeaea' }]} disabled={distance > 50}>
+                <Text style={styles.label}>Presensi</Text>
+              </TouchableOpacity>
+            )}
+            {distance <= 50 && (
+              <TouchableOpacity onPress={submit} style={[styles.submitBtn, { backgroundColor: color }]} disabled={distance > 50}>
+                <Text style={styles.label}>Presensi</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>
@@ -129,7 +175,7 @@ const Cek = () => {
   )
 }
 
-export default Cek
+export default Masuk
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -164,18 +210,25 @@ const styles = StyleSheet.create({
     width: width,
     alignItems: 'center',
     flexDirection: 'row',
-    justifyContent: 'center',
+    justifyContent: 'center'
   },
-  backBtn: {
-    width: '20%',
-    alignItems: 'center'
-  },
+
   submitBtn: {
-    backgroundColor: color,
-    padding: width * 0.02,
-    width: '70%',
+    padding: width * 0.015,
+    width: '87%',
     borderRadius: width * 0.02,
     alignItems: 'center',
     justifyContent: 'center',
-  }
+  },
+  buttonCallout: {
+    flex: 1,
+    position: 'absolute',
+    borderRadius: 100,
+    backgroundColor: 'white',
+    margin: width * 0.05,
+    width: width * 0.1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: width * 0.1,
+  },
 })
